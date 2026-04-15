@@ -13,7 +13,7 @@ from synthpop import Synthpop
 # ============================================================
 # 1. 데이터 불러오기
 # ============================================================
-data_path = "c:/Hwisu/CSI6208/data/health_data_2024_preprocessed_1000.csv"
+data_path = "data/preprocessed/health_data_2024_preprocessed_1000.csv"
 df = pd.read_csv(data_path, encoding="utf-8-sig")
 
 print(f"원본 데이터 크기: {df.shape[0]}행 x {df.shape[1]}열")
@@ -111,7 +111,7 @@ for col in category_cols:
 # ============================================================
 # 8. 합성 데이터 저장
 # ============================================================
-output_path = "c:/Hwisu/CSI6208/data/health_data_synthetic_synthpop.csv"
+output_path = "data/synthetic/synthpop/health_data_synthetic_synthpop.csv"
 df_syn.to_csv(output_path, index=False, encoding="utf-8-sig")
 
 print(f"\n합성 데이터 저장 완료: {output_path}")

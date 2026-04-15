@@ -8,7 +8,7 @@ plt.rcParams['font.family'] = 'Malgun Gothic'
 plt.rcParams['axes.unicode_minus'] = False
 
 # ── 1. 원본 데이터 로드 및 샘플링 ───────────────────────────────
-df = pd.read_csv("data/health_data_2024.csv", encoding="cp949")
+df = pd.read_csv("data/raw/health_data_2024.csv", encoding="cp949")
 df = df.sample(n=10_000, random_state=42).reset_index(drop=True)
 print(f"샘플링 완료: {df.shape[0]:,}행")
 
@@ -43,9 +43,9 @@ for g in groups:
 
 # ── 5. 그룹별 히트맵 개별 출력 ─────────────────────────────────
 file_names = [
-    'result/corr_blood_pressure.png',
-    'result/corr_liver.png',
-    'result/corr_body.png',
+    'result/evaluation/corr_blood_pressure.png',
+    'result/evaluation/corr_liver.png',
+    'result/evaluation/corr_body.png',
 ]
 
 for g, fname in zip(groups, file_names):

@@ -1,4 +1,6 @@
-data/
+data/raw/
+data/preprocessed/
+data/synthetic/
 __pycache__/
 *.pyc
 .ipynb_checkpoints/

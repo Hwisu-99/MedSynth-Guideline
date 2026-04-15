@@ -9,7 +9,7 @@ plt.rcParams['font.family'] = 'Malgun Gothic'
 plt.rcParams['axes.unicode_minus'] = False
 
 # ── 1. 원본 데이터 로드 및 샘플링 ───────────────────────────────
-df = pd.read_csv("data/health_data_2024.csv", encoding="cp949",
+df = pd.read_csv("data/raw/health_data_2024.csv", encoding="cp949",
                  usecols=['감마지티피', '음주여부'])
 df = df.sample(n=10_000, random_state=42).reset_index(drop=True)
 
@@ -91,6 +91,6 @@ axes[2].annotate(
 )
 
 plt.tight_layout()
-plt.savefig("result/gamma_drinking.png", dpi=150, bbox_inches='tight')
-print("\n저장 완료: result/gamma_drinking.png")
+plt.savefig("result/eda/gamma_drinking.png", dpi=150, bbox_inches='tight')
+print("\n저장 완료: result/eda/gamma_drinking.png")
 plt.show()

@@ -3,7 +3,7 @@ import numpy as np
 
 # ── 1. 데이터 로드 ──────────────────────────────────────────────
 df = pd.read_csv(
-    "data/health_data_2024.csv",
+    "data/raw/health_data_2024.csv",
     encoding="cp949"
 )
 print(f"원본 데이터: {df.shape[0]:,}행 × {df.shape[1]}열")
@@ -80,5 +80,5 @@ print(f"\n데이터 타입:\n{df.dtypes.to_string()}")
 print(f"\n샘플 데이터 (상위 3행):\n{df.head(3).to_string()}")
 
 # ── 9. 저장 ─────────────────────────────────────────────────────
-df.to_csv("data/health_data_2024_preprocessed.csv", index=False, encoding="utf-8-sig")
-print("\n저장 완료: data/health_data_2024_preprocessed.csv")
+df.to_csv("data/preprocessed/health_data_2024_preprocessed.csv", index=False, encoding="utf-8-sig")
+print("\n저장 완료: data/preprocessed/health_data_2024_preprocessed.csv")
