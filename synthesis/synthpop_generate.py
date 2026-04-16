@@ -7,13 +7,16 @@
 #   pip install py-synthpop
 # ============================================================
 
+import os
 import pandas as pd
 from synthpop import Synthpop
+
+os.makedirs("data/synthetic/synthpop", exist_ok=True)
 
 # ============================================================
 # 1. 데이터 불러오기
 # ============================================================
-data_path = "data/preprocessed/health_data_2024_preprocessed_1000.csv"
+data_path = "data/preprocessed/health_data_2024_preprocessed.csv"
 df = pd.read_csv(data_path, encoding="utf-8-sig")
 
 print(f"원본 데이터 크기: {df.shape[0]}행 x {df.shape[1]}열")
@@ -21,9 +24,8 @@ print(f"컬럼 목록: {df.columns.tolist()}\n")
 
 # ============================================================
 # 2. 개인식별정보(PII) 컬럼 제외
-#    - Name, Phone, Address는 합성 대상에서 제외
 # ============================================================
-df_synth = df.drop(columns=["Name", "Phone", "Address"])
+df_synth = df.drop(columns=["이름"])
 
 print("PII 제외 후 컬럼 목록:")
 print(df_synth.columns.tolist())
@@ -112,6 +114,7 @@ for col in category_cols:
 # 8. 합성 데이터 저장
 # ============================================================
 output_path = "data/synthetic/synthpop/health_data_synthetic_synthpop.csv"
+os.makedirs(os.path.dirname(output_path), exist_ok=True)
 df_syn.to_csv(output_path, index=False, encoding="utf-8-sig")
 
 print(f"\n합성 데이터 저장 완료: {output_path}")
