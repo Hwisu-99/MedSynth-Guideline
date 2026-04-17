@@ -10,6 +10,7 @@
 import os
 import pandas as pd
 from synthpop import Synthpop
+from utils.measure import MeasureResource
 
 os.makedirs("data/synthetic/synthpop", exist_ok=True)
 
@@ -72,20 +73,21 @@ print()
 #    - CART(Classification And Regression Trees) 알고리즘 기반
 #    - 실제 데이터의 분포와 변수 간 관계를 학습
 # ============================================================
-print("Synthpop 모델 학습 중...")
 spop = Synthpop()
-spop.fit(df_synth, dtypes)
-print("학습 완료!\n")
+
+print("Synthpop 모델 학습 중...")
+with MeasureResource("Synthpop 학습"):
+    spop.fit(df_synth, dtypes)
 
 # ============================================================
 # 6. 합성 데이터 생성 (generate)
-#    - 원본 데이터와 동일한 1000개 행 생성
-#    - py-synthpop은 원본 이상의 데이터도 생성 가능
+#    - 원본 데이터와 동일한 행 수 생성
 # ============================================================
-n_generate = 1000  # 생성할 합성 데이터 행 수
+n_generate = len(df_synth)
 
-print(f"합성 데이터 {n_generate}개 생성 중...")
-df_syn = spop.generate(n_generate)
+print(f"\n합성 데이터 {n_generate:,}개 생성 중...")
+with MeasureResource("Synthpop 생성", n_rows=n_generate):
+    df_syn = spop.generate(n_generate)
 print(f"생성 완료! 합성 데이터 크기: {df_syn.shape}\n")
 
 # ============================================================

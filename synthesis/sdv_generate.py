@@ -2,6 +2,7 @@ import os
 import pandas as pd
 from sdv.metadata import SingleTableMetadata
 from sdv.single_table import CTGANSynthesizer
+from utils.measure import MeasureResource
 
 os.makedirs("data/synthetic/sdv", exist_ok=True)
 
@@ -28,19 +29,17 @@ for col, info in metadata.columns.items():
     print(f"  {col}: {info['sdtype']}")
 
 # ── 4. SDV(CTGAN) 학습 ─────────────────────────────────────────
+synthesizer = CTGANSynthesizer(metadata, epochs=300, verbose=True)
+
 print("\nSDV(CTGAN) 학습 중... (epochs=300, 수 분 소요)")
-synthesizer = CTGANSynthesizer(
-    metadata,
-    epochs=300,
-    verbose=True,
-)
-synthesizer.fit(df_synth)
-print("학습 완료!")
+with MeasureResource("SDV 학습"):
+    synthesizer.fit(df_synth)
 
 # ── 5. 합성 데이터 생성 ─────────────────────────────────────────
 n_generate = len(df_synth)
 print(f"\n합성 데이터 {n_generate:,}개 생성 중...")
-df_syn = synthesizer.sample(num_rows=n_generate)
+with MeasureResource("SDV 생성", n_rows=n_generate):
+    df_syn = synthesizer.sample(num_rows=n_generate)
 print(f"생성 완료: {df_syn.shape}")
 
 # ── 6. 기초 통계 비교 ───────────────────────────────────────────
