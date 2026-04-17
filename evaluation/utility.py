@@ -167,8 +167,7 @@ print("[ML 유틸리티 평가 — TSTR]")
 print(f"  Target: {TARGET_COL} (0/1 이진 분류)")
 print("=" * 60)
 
-all_feature_cols = [c for c in NUMERIC_COLS + CATEGORY_COLS
-                    if c in df_real.columns and c != TARGET_COL]
+all_feature_cols = ['혈청지오티(AST)', '혈청지피티(ALT)', '감마지티피']
 
 def prepare_X(df, feature_cols):
     df = df[feature_cols].copy()
