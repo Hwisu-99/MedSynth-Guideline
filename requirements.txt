@@ -1,0 +1,8 @@
+pandas==2.3.3
+numpy==2.2.6
+matplotlib==3.10.8
+seaborn==0.13.2
+scipy==1.15.3
+scikit-learn==1.7.2
+sdv==1.35.1
+py-synthpop==0.1.2
