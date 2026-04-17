@@ -14,11 +14,11 @@ os.makedirs("result/evaluation", exist_ok=True)
 REAL_PATH = "data/preprocessed/health_data_2024_preprocessed.csv"
 TOOLS = {
     'Synthpop': "data/synthetic/synthpop/health_data_synthetic_synthpop.csv",
-    'CTGAN':    "data/synthetic/ctgan/health_data_synthetic_ctgan.csv",
+    'SDV':      "data/synthetic/sdv/health_data_synthetic_sdv.csv",
     # 'ARX':   "data/synthetic/arx/health_data_synthetic_arx.csv",    # 교수님 제공 예정
     # 'MASQ':  "data/synthetic/masq/health_data_synthetic_masq.csv",   # 교수님 제공 예정
 }
-TOOL_COLORS = {'Synthpop': '#E74C3C', 'CTGAN': '#3498DB',
+TOOL_COLORS = {'Synthpop': '#E74C3C', 'SDV': '#3498DB',
                'ARX': '#F39C12', 'MASQ': '#9B59B6'}
 SAMPLE_N    = 2000   # DCR/NNDR 계산용 샘플 크기 (메모리/속도 조정)
 DCR_THRESHOLD = 0.01  # 고위험 레코드 판단 임계값
