@@ -2,13 +2,16 @@ import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from datetime import datetime
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.neighbors import NearestNeighbors
 
 plt.rcParams['font.family'] = 'Malgun Gothic'
 plt.rcParams['axes.unicode_minus'] = False
 
-os.makedirs("result/evaluation", exist_ok=True)
+RESULT_DIR = f"result/evaluation/{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+os.makedirs(RESULT_DIR, exist_ok=True)
+print(f"결과 저장 경로: {RESULT_DIR}")
 
 # ── 설정 ────────────────────────────────────────────────────────
 REAL_PATH = "data/preprocessed/health_data_2024_preprocessed.csv"
@@ -106,7 +109,7 @@ for tool, df_s in synth_dfs.items():
     })
 
 df_summary = pd.DataFrame(summary_rows)
-df_summary.to_csv("result/evaluation/privacy_metrics.csv",
+df_summary.to_csv(f"{RESULT_DIR}/privacy_metrics.csv",
                   index=False, encoding="utf-8-sig")
 print(f"\n[요약]")
 print(df_summary.to_string(index=False))
@@ -138,9 +141,9 @@ ax.legend()
 
 fig.suptitle("프라이버시 안전성 평가 — DCR / NNDR", fontsize=13)
 plt.tight_layout()
-plt.savefig("result/evaluation/privacy_dcr_nndr.png", dpi=150, bbox_inches='tight')
+plt.savefig(f"{RESULT_DIR}/privacy_dcr_nndr.png", dpi=150, bbox_inches='tight')
 plt.show()
-print("저장: result/evaluation/privacy_dcr_nndr.png")
+print(f"저장: {RESULT_DIR}/privacy_dcr_nndr.png")
 
 # ── 5. 프라이버시 지표 요약 막대그래프 ─────────────────────────
 metrics   = ['DCR_평균', 'DCR_중앙값', 'NNDR_평균', 'NNDR_중앙값']
@@ -166,9 +169,9 @@ ax.set_ylabel("값")
 ax.set_title("프라이버시 지표 요약 비교\n(DCR↑, NNDR↑ 일수록 안전)")
 ax.legend()
 plt.tight_layout()
-plt.savefig("result/evaluation/privacy_summary.png", dpi=150, bbox_inches='tight')
+plt.savefig(f"{RESULT_DIR}/privacy_summary.png", dpi=150, bbox_inches='tight')
 plt.show()
-print("저장: result/evaluation/privacy_summary.png")
+print(f"저장: {RESULT_DIR}/privacy_summary.png")
 
 # ── 6. 고위험 레코드 비율 막대그래프 ──────────────────────────
 risk_col = [c for c in df_summary.columns if '고위험' in c][0]
@@ -183,12 +186,12 @@ for bar, val in zip(bars, df_summary[risk_col]):
 ax.set_ylabel("고위험 레코드 비율 (%)")
 ax.set_title(f"고위험 레코드 비율 비교\n(DCR < {DCR_THRESHOLD}, 낮을수록 안전)")
 plt.tight_layout()
-plt.savefig("result/evaluation/privacy_risk_ratio.png", dpi=150, bbox_inches='tight')
+plt.savefig(f"{RESULT_DIR}/privacy_risk_ratio.png", dpi=150, bbox_inches='tight')
 plt.show()
-print("저장: result/evaluation/privacy_risk_ratio.png")
+print(f"저장: {RESULT_DIR}/privacy_risk_ratio.png")
 
 print("\n[안전성 평가 완료]")
-print("  result/evaluation/privacy_metrics.csv")
-print("  result/evaluation/privacy_dcr_nndr.png")
-print("  result/evaluation/privacy_summary.png")
-print("  result/evaluation/privacy_risk_ratio.png")
+print(f"  {RESULT_DIR}/privacy_metrics.csv")
+print(f"  {RESULT_DIR}/privacy_dcr_nndr.png")
+print(f"  {RESULT_DIR}/privacy_summary.png")
+print(f"  {RESULT_DIR}/privacy_risk_ratio.png")

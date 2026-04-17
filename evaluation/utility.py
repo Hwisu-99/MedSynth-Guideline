@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from datetime import datetime
 from scipy import stats
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
@@ -12,7 +13,9 @@ from sklearn.preprocessing import LabelEncoder
 plt.rcParams['font.family'] = 'Malgun Gothic'
 plt.rcParams['axes.unicode_minus'] = False
 
-os.makedirs("result/evaluation", exist_ok=True)
+RESULT_DIR = f"result/evaluation/{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+os.makedirs(RESULT_DIR, exist_ok=True)
+print(f"결과 저장 경로: {RESULT_DIR}")
 
 # ── 설정 ────────────────────────────────────────────────────────
 REAL_PATH = "data/preprocessed/health_data_2024_preprocessed.csv"
@@ -76,7 +79,7 @@ for col in NUMERIC_COLS:
         })
 
 df_stats = pd.DataFrame(rows)
-df_stats.to_csv("result/evaluation/utility_stats.csv",
+df_stats.to_csv(f"{RESULT_DIR}/utility_stats.csv",
                 index=False, encoding="utf-8-sig")
 print(df_stats.to_string(index=False))
 
@@ -102,9 +105,9 @@ ax.set_ylabel("KS 통계량 (낮을수록 원본과 유사)")
 ax.set_title("수치형 컬럼별 KS 통계량 비교 (원본 vs 합성)")
 ax.legend()
 plt.tight_layout()
-plt.savefig("result/evaluation/utility_ks.png", dpi=150, bbox_inches='tight')
+plt.savefig(f"{RESULT_DIR}/utility_ks.png", dpi=150, bbox_inches='tight')
 plt.show()
-print("저장: result/evaluation/utility_ks.png")
+print(f"저장: {RESULT_DIR}/utility_ks.png")
 
 # ── 4. 분포 히스토그램 ──────────────────────────────────────────
 ncols = 4
@@ -127,9 +130,9 @@ for j in range(i + 1, len(axes)):
 
 fig.suptitle("수치형 컬럼 분포 비교 (원본 vs 합성)", fontsize=13)
 plt.tight_layout()
-plt.savefig("result/evaluation/utility_distribution.png", dpi=150, bbox_inches='tight')
+plt.savefig(f"{RESULT_DIR}/utility_distribution.png", dpi=150, bbox_inches='tight')
 plt.show()
-print("저장: result/evaluation/utility_distribution.png")
+print(f"저장: {RESULT_DIR}/utility_distribution.png")
 
 # ── 5. 상관관계 행렬 비교 ──────────────────────────────────────
 n_panels = 1 + len(synth_dfs)
@@ -157,9 +160,9 @@ for i, (tool, df_s) in enumerate(synth_dfs.items()):
 
 fig.suptitle("상관관계 행렬 비교", fontsize=13, y=1.02)
 plt.tight_layout()
-plt.savefig("result/evaluation/utility_correlation.png", dpi=150, bbox_inches='tight')
+plt.savefig(f"{RESULT_DIR}/utility_correlation.png", dpi=150, bbox_inches='tight')
 plt.show()
-print("저장: result/evaluation/utility_correlation.png")
+print(f"저장: {RESULT_DIR}/utility_correlation.png")
 
 # ── 6. ML 유틸리티 — TSTR ─────────────────────────────────────
 print("\n" + "=" * 60)
@@ -208,7 +211,7 @@ for tool, df_s in synth_dfs.items():
     ml_rows.append({'방식': f'TSTR ({tool})', '정확도': acc, 'F1 (weighted)': f1})
 
 df_ml = pd.DataFrame(ml_rows)
-df_ml.to_csv("result/evaluation/utility_ml.csv", index=False, encoding="utf-8-sig")
+df_ml.to_csv(f"{RESULT_DIR}/utility_ml.csv", index=False, encoding="utf-8-sig")
 
 bar_colors = ['#2ECC71'] + [TOOL_COLORS.get(t, 'gray') for t in synth_dfs]
 fig, axes = plt.subplots(1, 2, figsize=(10, 4))
@@ -225,14 +228,14 @@ for ax, metric in zip(axes, ['정확도', 'F1 (weighted)']):
     ax.tick_params(axis='x', rotation=20)
 
 plt.tight_layout()
-plt.savefig("result/evaluation/utility_ml.png", dpi=150, bbox_inches='tight')
+plt.savefig(f"{RESULT_DIR}/utility_ml.png", dpi=150, bbox_inches='tight')
 plt.show()
-print("저장: result/evaluation/utility_ml.png")
+print(f"저장: {RESULT_DIR}/utility_ml.png")
 
 print("\n[효용성 평가 완료]")
-print("  result/evaluation/utility_stats.csv")
-print("  result/evaluation/utility_ks.png")
-print("  result/evaluation/utility_distribution.png")
-print("  result/evaluation/utility_correlation.png")
-print("  result/evaluation/utility_ml.csv")
-print("  result/evaluation/utility_ml.png")
+print(f"  {RESULT_DIR}/utility_stats.csv")
+print(f"  {RESULT_DIR}/utility_ks.png")
+print(f"  {RESULT_DIR}/utility_distribution.png")
+print(f"  {RESULT_DIR}/utility_correlation.png")
+print(f"  {RESULT_DIR}/utility_ml.csv")
+print(f"  {RESULT_DIR}/utility_ml.png")
