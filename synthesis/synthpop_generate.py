@@ -76,7 +76,7 @@ print()
 #    - CART(Classification And Regression Trees) 알고리즘 기반
 #    - 실제 데이터의 분포와 변수 간 관계를 학습
 # ============================================================
-spop = Synthpop()
+spop = Synthpop(seed=42)
 
 print("Synthpop 모델 학습 중...")
 with MeasureResource("Synthpop 학습"):
