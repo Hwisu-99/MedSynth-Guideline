@@ -3,7 +3,7 @@ import pandas as pd
 from sdv.metadata import SingleTableMetadata
 from sdv.single_table import CTGANSynthesizer
 
-os.makedirs("data/synthetic/ctgan", exist_ok=True)
+os.makedirs("data/synthetic/sdv", exist_ok=True)
 
 # ── 1. 데이터 로드 ─────────────────────────────────────────────
 df = pd.read_csv("data/preprocessed/health_data_2024_preprocessed.csv",
@@ -27,8 +27,8 @@ print("[메타데이터 타입]")
 for col, info in metadata.columns.items():
     print(f"  {col}: {info['sdtype']}")
 
-# ── 4. CTGAN 학습 ───────────────────────────────────────────────
-print("\nCTGAN 학습 중... (epochs=300, 수 분 소요)")
+# ── 4. SDV(CTGAN) 학습 ─────────────────────────────────────────
+print("\nSDV(CTGAN) 학습 중... (epochs=300, 수 분 소요)")
 synthesizer = CTGANSynthesizer(
     metadata,
     epochs=300,
@@ -50,8 +50,8 @@ print("\n[합성 기초통계]")
 print(df_syn.describe().round(2).to_string())
 
 # ── 7. 저장 ─────────────────────────────────────────────────────
-output_csv = "data/synthetic/ctgan/health_data_synthetic_ctgan.csv"
-output_pkl = "data/synthetic/ctgan/ctgan_model.pkl"
+output_csv = "data/synthetic/sdv/health_data_synthetic_sdv.csv"
+output_pkl = "data/synthetic/sdv/sdv_model.pkl"
 
 df_syn.to_csv(output_csv, index=False, encoding="utf-8-sig")
 synthesizer.save(output_pkl)
