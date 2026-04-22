@@ -45,7 +45,54 @@ df['혈색소'] = df['혈색소'].astype(float)
 # BMI 계산: 체중(kg) / (신장(m))²
 df['BMI'] = (df['체중(5kg단위)'] / (df['신장(5cm단위)'] / 100) ** 2).round(1)
 
-# ── 6. 가상 컬럼 추가 ───────────────────────────────────────────
+# ── 6. 질환 파생변수 생성 ────────────────────────────────────────
+
+# ① 당뇨 (0: 정상, 1: 주의, 2: 위험)
+def classify_diabetes(glucose):
+    if glucose < 100:
+        return 0
+    elif glucose <= 125:
+        return 1
+    else:
+        return 2
+
+df['당뇨'] = df['식전혈당(공복혈당)'].apply(classify_diabetes).astype(int)
+
+# ② 고혈압 (0: 정상, 1: 주의, 2: 위험)
+def classify_hypertension(row):
+    sbp, dbp = row['수축기혈압'], row['이완기혈압']
+    if sbp >= 140 or dbp >= 90:
+        return 2
+    elif sbp >= 120 or dbp >= 80:
+        return 1
+    else:
+        return 0
+
+df['고혈압'] = df.apply(classify_hypertension, axis=1).astype(int)
+
+# ③ 간 기능 (0: 정상, 1: 주의, 2: 위험)
+# 감마지티피 정상 기준: 남(성별코드=1) 63 미만, 여(성별코드=2) 35 미만
+def classify_liver(row):
+    ast  = row['혈청지오티(AST)']
+    alt  = row['혈청지피티(ALT)']
+    ggt  = row['감마지티피']
+    ggt_threshold = 63 if row['성별코드'] == 1 else 35
+
+    if ast > 60 or alt > 60 or ggt > 60:
+        return 2
+    elif ast > 40 or alt > 40 or ggt >= ggt_threshold:
+        return 1
+    else:
+        return 0
+
+df['간기능'] = df.apply(classify_liver, axis=1).astype(int)
+
+print(f"\n질환 파생변수 분포:")
+for col in ['당뇨', '고혈압', '간기능']:
+    vc = df[col].value_counts().sort_index()
+    print(f"  [{col}]  " + "  ".join(f"{k}단계: {v:,}명" for k, v in vc.items()))
+
+# ── 8. 가상 컬럼 추가 ───────────────────────────────────────────
 n = len(df)
 rng = np.random.default_rng(42)
 
@@ -62,23 +109,24 @@ end_idx  = rng.integers(0, len(end_chars),  size=n)
 df['이름'] = [last_names[l] + mid_chars[m] + end_chars[e]
               for l, m, e in zip(last_idx, mid_idx, end_idx)]
 
-# ── 7. 컬럼 순서 정렬 ───────────────────────────────────────────
+# ── 9. 컬럼 순서 정렬 ───────────────────────────────────────────
 final_cols = [
     '이름', '성별코드', '시도코드', '연령대코드(5세단위)',
     '신장(5cm단위)', '체중(5kg단위)', 'BMI',
     '수축기혈압', '이완기혈압', '혈색소',
     '식전혈당(공복혈당)', '혈청크레아티닌',
     '혈청지오티(AST)', '혈청지피티(ALT)', '감마지티피',
-    '흡연상태', '음주여부'
+    '흡연상태', '음주여부',
+    '당뇨', '고혈압', '간기능'
 ]
 df = df[final_cols]
 
-# ── 8. 결과 확인 ────────────────────────────────────────────────
+# ── 10. 결과 확인 ────────────────────────────────────────────────
 print(f"\n최종 데이터: {df.shape[0]:,}행 × {df.shape[1]}열")
 print(f"컬럼 목록: {df.columns.tolist()}")
 print(f"\n데이터 타입:\n{df.dtypes.to_string()}")
 print(f"\n샘플 데이터 (상위 3행):\n{df.head(3).to_string()}")
 
-# ── 9. 저장 ─────────────────────────────────────────────────────
+# ── 11. 저장 ─────────────────────────────────────────────────────
 df.to_csv("data/preprocessed/health_data_2024_preprocessed.csv", index=False, encoding="utf-8-sig")
 print("\n저장 완료: data/preprocessed/health_data_2024_preprocessed.csv")
