@@ -17,10 +17,11 @@ from datetime import datetime
 
 warnings.filterwarnings("ignore")
 
-_font_path = "C:/Windows/Fonts/malgun.ttf"
-fm.fontManager.addfont(_font_path)
-_prop = fm.FontProperties(fname=_font_path)
-plt.rcParams['font.family'] = _prop.get_name()
+_KOREAN_FONTS = ['Malgun Gothic', 'NanumGothic', 'AppleGothic', 'Noto Sans KR']
+_registered   = {f.name for f in fm.fontManager.ttflist}
+_korean_font  = next((f for f in _KOREAN_FONTS if f in _registered), None)
+if _korean_font:
+    plt.rcParams['font.family'] = _korean_font
 plt.rcParams['axes.unicode_minus'] = False
 
 RESULT_DIR = f"result/analysis/{datetime.now().strftime('%Y%m%d_%H%M%S')}_fptree"
@@ -200,7 +201,7 @@ for n in node_list:
     ax1.text(x, y, labels[n],
              ha='center', va='center',
              fontsize=font_sizes[n], fontweight='bold', color='white',
-             fontfamily=_prop.get_name(),
+             fontfamily=_korean_font or 'sans-serif',
              bbox=dict(boxstyle='round,pad=0.15', facecolor='none',
                        edgecolor='none', alpha=0))
 
