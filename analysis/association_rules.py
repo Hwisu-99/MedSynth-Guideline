@@ -4,11 +4,14 @@ STEP 5 — Association Rule Mining (FP-Growth)
 bi_exploration.py 에서 연관 규칙 분석만 단독 실행하는 스크립트
 
 실행:
-    python analysis/association_rules.py
+    python analysis/association_rules.py              # 정상 포함 전체 규칙
+    python analysis/association_rules.py --abnormal   # 질환 주의/위험 규칙만
 """
 
 import os
+import json
 import time
+import argparse
 import threading
 import itertools
 import warnings
@@ -17,6 +20,11 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 
 warnings.filterwarnings("ignore")
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--abnormal', action='store_true',
+                    help='질환 주의/위험 포함 규칙만 추출 (정상 제외)')
+args = parser.parse_args()
 
 
 # ── 진행 표시기 ───────────────────────────────────────────────────────────────
@@ -74,12 +82,22 @@ RESULT_DIR = f"result/analysis/{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 os.makedirs(RESULT_DIR, exist_ok=True)
 print(f"결과 저장 경로: {RESULT_DIR}\n")
 
+# ── 0. 파라미터 선정 ───────────────────────────────────────────────────────────────
 REAL_PATH = "data/preprocessed/health_data_2024_preprocessed.csv"
-TARGETS   = ['당뇨', '고혈압', '간기능']
+TARGETS        = ['당뇨', '고혈압', '간기능']
+ABNORMAL_ONLY  = args.abnormal  # --abnormal 플래그로 제어
 
-MIN_SUPPORT    = 0.10   # 10% 이상 (1000건+) — 규칙 수 폭발 방지
-MIN_CONFIDENCE = 0.60   # 신뢰도 60% 이상
-MIN_LIFT       = 1.1    # 리프트 1.1 이상
+MIN_SUPPORT    = 0.10   # 지지도
+MIN_CONFIDENCE = 0.70   # 신뢰도 
+MIN_LIFT       = 1.5    # 리프트 
+
+json.dump({
+    'MIN_SUPPORT': MIN_SUPPORT,
+    'MIN_CONFIDENCE': MIN_CONFIDENCE,
+    'MIN_LIFT': MIN_LIFT,
+    'ABNORMAL_ONLY': ABNORMAL_ONLY,
+}, open(f"{RESULT_DIR}/params.json", 'w'), ensure_ascii=False, indent=2)
+print(f"파라미터 저장: {RESULT_DIR}/params.json")
 
 # ── 1. 데이터 로드 ────────────────────────────────────────────────────────────
 _step("데이터 로드")
@@ -178,9 +196,24 @@ for idx, row in rules.iterrows():
         seen_pairs.add(key)
         keep_idx.append(idx)
 rules = rules.loc[keep_idx].reset_index(drop=True)
-n_rules_final = len(rules)
-print(f"  중복 제거 후 규칙 수: {n_rules_final:,}개")
+print(f"  중복 제거 후 규칙 수: {len(rules):,}개")
 
+# ── 6. --abnormal 시 전체 rules 자체를 비정상 규칙으로 사전 필터링 ────────────
+if ABNORMAL_ONLY:
+    abnormal_pattern = '|'.join(f'{t}=주의|{t}=위험' for t in TARGETS)
+    # 조건1: 조건부 또는 결론부에 질환 비정상(주의/위험) 포함
+    has_disease_abnormal = (rules['조건부(if)'].str.contains(abnormal_pattern) |
+                            rules['결론부(then)'].str.contains(abnormal_pattern))
+    # 조건2: 조건부/결론부 양쪽 모두 =정상 값이 하나도 없어야 함
+    no_normal = (~rules['조건부(if)'].str.contains('=정상') &
+                 ~rules['결론부(then)'].str.contains('=정상'))
+    rules = rules[has_disease_abnormal & no_normal].reset_index(drop=True)
+    filter_label = "질환 비정상(주의/위험) 규칙"
+    print(f"  --abnormal 필터 후 규칙 수: {len(rules):,}개")
+else:
+    filter_label = "질환 관련 규칙 (정상 포함)"
+
+n_rules_final = len(rules)
 display_cols = ['조건부(if)', '결론부(then)', 'support', 'confidence', 'lift']
 
 print(f"\n[전체 규칙 상위 20개 — lift 기준]")
@@ -188,13 +221,17 @@ print(rules[display_cols].head(20).round(4).to_string(index=False))
 rules[display_cols].to_csv(f"{RESULT_DIR}/association_rules_all.csv",
                            index=False, encoding="utf-8-sig")
 
-# ── 6. 질환 관련 규칙 필터 ───────────────────────────────────────────────────
-disease_pattern = '|'.join(TARGETS)
+# ── 7. 질환 관련 규칙 필터 ───────────────────────────────────────────────────
+if ABNORMAL_ONLY:
+    disease_pattern = abnormal_pattern  # 이미 위에서 정의
+else:
+    disease_pattern = '|'.join(TARGETS)
+
 rules_disease = rules[
     rules['결론부(then)'].str.contains(disease_pattern) |
     rules['조건부(if)'].str.contains(disease_pattern)
 ].reset_index(drop=True)
-print(f"\n[질환 관련 규칙: {len(rules_disease)}개]")
+print(f"\n[{filter_label}: {len(rules_disease)}개]")
 if len(rules_disease):
     print(rules_disease[display_cols].head(30).round(4).to_string(index=False))
     rules_disease[display_cols].to_csv(
