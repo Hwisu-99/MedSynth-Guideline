@@ -158,7 +158,9 @@ _step(f"연관 규칙 생성  (min_confidence={MIN_CONFIDENCE}, min_lift={MIN_LI
 with Spinner("연관 규칙 생성"):
     rules = mlxtend_rules(frequent_items, metric="confidence",
                           min_threshold=MIN_CONFIDENCE)
+    n_rules_raw = len(rules)
     rules = rules[rules['lift'] >= MIN_LIFT]
+    n_rules_lift = len(rules)
     rules = rules.sort_values('lift', ascending=False).reset_index(drop=True)
 print(f"  최종 규칙 수: {len(rules):,}개  (confidence≥{MIN_CONFIDENCE}, lift≥{MIN_LIFT})")
 
@@ -176,7 +178,8 @@ for idx, row in rules.iterrows():
         seen_pairs.add(key)
         keep_idx.append(idx)
 rules = rules.loc[keep_idx].reset_index(drop=True)
-print(f"  중복 제거 후 규칙 수: {len(rules):,}개")
+n_rules_final = len(rules)
+print(f"  중복 제거 후 규칙 수: {n_rules_final:,}개")
 
 display_cols = ['조건부(if)', '결론부(then)', 'support', 'confidence', 'lift']
 
@@ -188,7 +191,8 @@ rules[display_cols].to_csv(f"{RESULT_DIR}/association_rules_all.csv",
 # ── 6. 질환 관련 규칙 필터 ───────────────────────────────────────────────────
 disease_pattern = '|'.join(TARGETS)
 rules_disease = rules[
-    rules['결론부(then)'].str.contains(disease_pattern)
+    rules['결론부(then)'].str.contains(disease_pattern) |
+    rules['조건부(if)'].str.contains(disease_pattern)
 ].reset_index(drop=True)
 print(f"\n[질환 관련 규칙: {len(rules_disease)}개]")
 if len(rules_disease):
@@ -209,7 +213,7 @@ ax.axhline(MIN_CONFIDENCE, color='red', linestyle='--',
            linewidth=0.8, label=f'최소 신뢰도 {MIN_CONFIDENCE}')
 ax.set_xlabel("Support (지지도)")
 ax.set_ylabel("Confidence (신뢰도)")
-ax.set_title("전체 연관 규칙 분포\n(색상·크기 = Lift, 오른쪽 위·초록일수록 강한 규칙)", fontsize=12)
+# ax.set_title("전체 연관 규칙 분포\n(색상·크기 = Lift, 오른쪽 위·빨강일수록 강한 규칙)", fontsize=12)
 ax.legend()
 plt.tight_layout()
 plt.savefig(f"{RESULT_DIR}/rules_scatter.png", dpi=150, bbox_inches='tight')
@@ -219,7 +223,7 @@ print(f"저장: {RESULT_DIR}/rules_scatter.png")
 # 질환 관련 규칙 상위 15개 막대그래프
 if len(rules_disease):
     top15 = rules_disease.head(15)
-    fig, ax = plt.subplots(figsize=(12, 6))
+    fig, ax = plt.subplots(figsize=(24, 10))
     colors = ['#E74C3C' if '당뇨' in t else '#3498DB' if '고혈압' in t else '#2ECC71'
               for t in top15['결론부(then)']]
     bars = ax.barh(range(len(top15)), top15['lift'], color=colors, alpha=0.85)
@@ -227,17 +231,108 @@ if len(rules_disease):
     ax.set_yticklabels(
         [f"{row['조건부(if)']}  →  {row['결론부(then)']}"
          for _, row in top15.iterrows()],
-        fontsize=8)
+        fontsize=9)
     for bar, val in zip(bars, top15['lift']):
-        ax.text(val + 0.01, bar.get_y() + bar.get_height() / 2,
-                f"{val:.3f}", va='center', fontsize=8)
-    ax.set_xlabel("Lift (향상도)")
+        ax.text(val + 0.05, bar.get_y() + bar.get_height() / 2,
+                f"{val:.3f}", va='center', fontsize=10)
+    ax.set_xlabel("Lift (향상도)", fontsize=12)
     ax.set_title("질환 관련 연관 규칙 상위 15개 (Lift 기준)\n"
-                 "빨강=당뇨  파랑=고혈압  초록=간기능", fontsize=11)
+                 "빨강=당뇨  파랑=고혈압  초록=간기능", fontsize=13)
     ax.invert_yaxis()
-    plt.tight_layout()
+    plt.subplots_adjust(left=0.45)
     plt.savefig(f"{RESULT_DIR}/rules_disease_bar.png", dpi=150, bbox_inches='tight')
     plt.show()
     print(f"저장: {RESULT_DIR}/rules_disease_bar.png")
+
+
+# ── 8. FP-Growth 파이프라인 시각화 (발표용) ──────────────────────────────────
+_step("FP-Growth 파이프라인 시각화 (발표용)")
+
+fig = plt.figure(figsize=(22, 14))
+fig.suptitle("FP-Growth 연관 규칙 마이닝 파이프라인", fontsize=17, fontweight='bold', y=0.99)
+
+# Panel 1 (좌상): 빈발 단일 항목 Top 15
+ax1 = fig.add_subplot(2, 2, 1)
+single_items = frequent_items[frequent_items['itemsets'].apply(len) == 1].copy()
+single_items['item'] = single_items['itemsets'].apply(lambda x: list(x)[0])
+single_items = single_items.nlargest(15, 'support')
+bar_colors1 = ['#E74C3C' if any(t in item for t in TARGETS) else '#5B9BD5'
+               for item in single_items['item']]
+bars1 = ax1.barh(range(len(single_items)), single_items['support'],
+                 color=bar_colors1, alpha=0.85)
+ax1.set_yticks(range(len(single_items)))
+ax1.set_yticklabels(single_items['item'], fontsize=9)
+ax1.invert_yaxis()
+ax1.axvline(MIN_SUPPORT, color='red', linestyle='--', linewidth=1,
+            label=f'min_support={MIN_SUPPORT}')
+ax1.set_xlabel("Support (지지도)", fontsize=10)
+ax1.set_title(f"① 빈발 단일 항목 Top 15\n(빨강=질환 관련)", fontsize=11, fontweight='bold')
+ax1.legend(fontsize=8)
+for bar, val in zip(bars1, single_items['support']):
+    ax1.text(val + 0.003, bar.get_y() + bar.get_height() / 2,
+             f"{val:.3f}", va='center', fontsize=8)
+
+# Panel 2 (우상): 항목집합 크기별 분포
+ax2 = fig.add_subplot(2, 2, 2)
+size_counts = frequent_items['itemsets'].apply(len).value_counts().sort_index()
+cmap2 = plt.cm.Blues
+bar_colors2 = [cmap2(0.35 + 0.12 * i) for i in range(len(size_counts))]
+bars2 = ax2.bar(size_counts.index, size_counts.values,
+                color=bar_colors2, alpha=0.9, edgecolor='white', width=0.6)
+ax2.set_xlabel("항목집합 크기 (아이템 수)", fontsize=10)
+ax2.set_ylabel("빈발 항목집합 수", fontsize=10)
+ax2.set_title(f"② 빈발 항목집합 크기별 분포\n(총 {len(frequent_items):,}개, min_support={MIN_SUPPORT})",
+              fontsize=11, fontweight='bold')
+ax2.set_xticks(size_counts.index)
+for bar, val in zip(bars2, size_counts.values):
+    ax2.text(bar.get_x() + bar.get_width() / 2, val + max(size_counts.values) * 0.01,
+             f"{val:,}", ha='center', fontsize=9)
+
+# Panel 3 (좌하): 규칙 생성 깔때기
+ax3 = fig.add_subplot(2, 2, 3)
+funnel_stages = [
+    (f"원본 트랜잭션\n{len(df):,}건", len(df)),
+    (f"빈발 항목집합\nsupport ≥ {MIN_SUPPORT}\n{len(frequent_items):,}개", len(frequent_items)),
+    (f"후보 규칙\nconfidence ≥ {MIN_CONFIDENCE}\n{n_rules_raw:,}개", n_rules_raw),
+    (f"Lift 필터\nlift ≥ {MIN_LIFT}\n{n_rules_lift:,}개", n_rules_lift),
+    (f"중복 제거 후\n최종 규칙\n{n_rules_final:,}개", n_rules_final),
+]
+funnel_colors = ['#2E86AB', '#A23B72', '#F18F01', '#C73E1D', '#2ECC71']
+max_val = funnel_stages[0][1]
+for i, (label, val) in enumerate(funnel_stages):
+    width = max(val / max_val, 0.08)
+    left = (1 - width) / 2
+    ax3.barh(i, width, left=left, color=funnel_colors[i], alpha=0.88, height=0.65)
+    ax3.text(0.5, i, label, ha='center', va='center',
+             fontsize=9, color='white', fontweight='bold')
+    if i > 0:
+        prev_val = funnel_stages[i - 1][1]
+        ratio = val / prev_val * 100 if prev_val else 0
+        ax3.text(0.97, i - 0.5, f"▼ {ratio:.1f}%", ha='right', va='center',
+                 fontsize=8, color='gray')
+ax3.set_xlim(0, 1)
+ax3.set_ylim(-0.5, len(funnel_stages) - 0.5)
+ax3.invert_yaxis()
+ax3.axis('off')
+ax3.set_title("③ 규칙 생성 단계별 필터링 (Funnel)", fontsize=11, fontweight='bold')
+
+# Panel 4 (우하): 최종 규칙 산점도
+ax4 = fig.add_subplot(2, 2, 4)
+sc4 = ax4.scatter(rules['support'], rules['confidence'],
+                  c=rules['lift'], cmap='RdYlGn_r',
+                  s=rules['lift'] * 12, alpha=0.65,
+                  edgecolors='gray', linewidth=0.2)
+plt.colorbar(sc4, ax=ax4, label='Lift')
+ax4.axhline(MIN_CONFIDENCE, color='red', linestyle='--', linewidth=0.8,
+            label=f'min_confidence={MIN_CONFIDENCE}')
+ax4.set_xlabel("Support (지지도)", fontsize=10)
+ax4.set_ylabel("Confidence (신뢰도)", fontsize=10)
+ax4.set_title(f"④ 최종 규칙 분포\n({n_rules_final:,}개, 빨강=높은 Lift)", fontsize=11, fontweight='bold')
+ax4.legend(fontsize=8)
+
+plt.tight_layout(rect=[0, 0, 1, 0.97])
+plt.savefig(f"{RESULT_DIR}/fpgrowth_pipeline.png", dpi=150, bbox_inches='tight')
+plt.show()
+print(f"저장: {RESULT_DIR}/fpgrowth_pipeline.png")
 
 print(f"\n완료: {RESULT_DIR}/")
