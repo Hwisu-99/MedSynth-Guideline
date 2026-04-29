@@ -4,9 +4,10 @@ STEP 5 — Association Rule Mining (FP-Growth)
 bi_exploration.py 에서 연관 규칙 분석만 단독 실행하는 스크립트
 
 실행:
-    python analysis/association_rules.py              # 정상 포함 전체 규칙
-    python analysis/association_rules.py --abnormal   # 질환 주의/위험 규칙만
-    python analysis/association_rules.py --top 30     # 질환 관련 규칙 상위 30개
+    python analysis/association_rules.py                      # 정상 포함 전체 규칙
+    python analysis/association_rules.py --abnormal           # 정상 제외 규칙만 (질환 주의/위험 규칙만)
+    python analysis/association_rules.py --top 30             # 상위 30개 규칙만
+    python analysis/association_rules.py --target 당뇨=위험    # 특정 타겟 관련 규칙만
 """
 
 import os
@@ -27,6 +28,8 @@ parser.add_argument('--abnormal', action='store_true',
                     help='질환 주의/위험 포함 규칙만 추출 (정상 제외)')
 parser.add_argument('--top', type=int, default=15,
                     help='질환 관련 규칙 막대그래프 상위 N개 (기본값: 15)')
+parser.add_argument('--target', type=str, default=None,
+                    help='결론부를 특정 조건으로 고정 (예: 당뇨=위험, 고혈압=주의)')
 args = parser.parse_args()
 
 
@@ -90,8 +93,9 @@ REAL_PATH = "data/preprocessed/health_data_2024_preprocessed.csv"
 TARGETS        = ['당뇨', '고혈압', '간기능']
 ABNORMAL_ONLY  = args.abnormal  # --abnormal 플래그로 제어
 TOP_N          = args.top       # --top N 으로 제어
+TARGET_COND    = args.target    # --target 당뇨=위험 등
 
-MIN_SUPPORT    = 0.10   # 지지도
+MIN_SUPPORT    = 0.17   # 지지도
 MIN_CONFIDENCE = 0.70   # 신뢰도 
 MIN_LIFT       = 1.5    # 리프트 
 
@@ -101,6 +105,7 @@ json.dump({
     'MIN_LIFT': MIN_LIFT,
     'ABNORMAL_ONLY': ABNORMAL_ONLY,
     'TOP_N': TOP_N,
+    'TARGET_COND': TARGET_COND,
 }, open(f"{RESULT_DIR}/params.json", 'w'), ensure_ascii=False, indent=2)
 print(f"파라미터 저장: {RESULT_DIR}/params.json")
 
@@ -227,20 +232,34 @@ rules[display_cols].to_csv(f"{RESULT_DIR}/association_rules_all.csv",
                            index=False, encoding="utf-8-sig")
 
 # ── 7. 질환 관련 규칙 필터 ───────────────────────────────────────────────────
-if ABNORMAL_ONLY:
+if TARGET_COND:
+    # --target 지정 시: 결론부 또는 조건부에 해당 조건이 포함된 규칙
+    rules_disease = rules[
+        rules['결론부(then)'].str.contains(TARGET_COND) |
+        rules['조건부(if)'].str.contains(TARGET_COND)
+    ].reset_index(drop=True)
+    filter_label = f"{TARGET_COND} 관련 규칙"
+    csv_name = f"association_rules_target_{TARGET_COND.replace('=', '_')}.csv"
+elif ABNORMAL_ONLY:
     disease_pattern = abnormal_pattern  # 이미 위에서 정의
+    rules_disease = rules[
+        rules['결론부(then)'].str.contains(disease_pattern) |
+        rules['조건부(if)'].str.contains(disease_pattern)
+    ].reset_index(drop=True)
+    csv_name = "association_rules_disease.csv"
 else:
     disease_pattern = '|'.join(TARGETS)
+    rules_disease = rules[
+        rules['결론부(then)'].str.contains(disease_pattern) |
+        rules['조건부(if)'].str.contains(disease_pattern)
+    ].reset_index(drop=True)
+    csv_name = "association_rules_disease.csv"
 
-rules_disease = rules[
-    rules['결론부(then)'].str.contains(disease_pattern) |
-    rules['조건부(if)'].str.contains(disease_pattern)
-].reset_index(drop=True)
 print(f"\n[{filter_label}: {len(rules_disease)}개]")
 if len(rules_disease):
     print(rules_disease[display_cols].head(30).round(4).to_string(index=False))
     rules_disease[display_cols].to_csv(
-        f"{RESULT_DIR}/association_rules_disease.csv",
+        f"{RESULT_DIR}/{csv_name}",
         index=False, encoding="utf-8-sig")
 
 # ── 7. 시각화 ─────────────────────────────────────────────────────────────────
@@ -267,7 +286,8 @@ if len(rules_disease):
     top_n = rules_disease.head(TOP_N)
     fig, ax = plt.subplots(figsize=(24, max(6, TOP_N * 0.7)))
     colors = ['#E74C3C' if '당뇨' in t else '#3498DB' if '고혈압' in t else '#2ECC71'
-              for t in top_n['결론부(then)']]
+              for t in (top_n['결론부(then)'] if not TARGET_COND
+                        else [TARGET_COND] * len(top_n))]
     bars = ax.barh(range(len(top_n)), top_n['lift'], color=colors, alpha=0.85)
     ax.set_yticks(range(len(top_n)))
     ax.set_yticklabels(
@@ -278,8 +298,11 @@ if len(rules_disease):
         ax.text(val + 0.05, bar.get_y() + bar.get_height() / 2,
                 f"{val:.3f}", va='center', fontsize=10)
     ax.set_xlabel("Lift (향상도)", fontsize=12)
-    ax.set_title(f"질환 관련 연관 규칙 상위 {TOP_N}개 (Lift 기준)\n"
-                 "빨강=당뇨  파랑=고혈압  초록=간기능", fontsize=13)
+    chart_title = (f"{TARGET_COND} 관련 규칙 상위 {TOP_N}개 (Lift 기준)\n"
+                   f"조건부 또는 결론부에 {TARGET_COND} 포함" if TARGET_COND
+                   else f"질환 관련 연관 규칙 상위 {TOP_N}개 (Lift 기준)\n"
+                        "빨강=당뇨  파랑=고혈압  초록=간기능")
+    ax.set_title(chart_title, fontsize=13)
     ax.invert_yaxis()
     plt.subplots_adjust(left=0.45)
     plt.savefig(f"{RESULT_DIR}/rules_disease_bar.png", dpi=150, bbox_inches='tight')
