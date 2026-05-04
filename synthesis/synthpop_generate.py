@@ -40,7 +40,8 @@ print()
 #    - py-synthpop은 int / float / category 3가지 타입을 사용
 #    - 범주형으로 처리할 변수는 미리 category로 변환
 # ============================================================
-category_cols = ["성별코드", "연령대코드(5세단위)", "시도코드", "흡연상태", "음주여부"]
+category_cols = ["성별코드", "연령대코드(5세단위)", "시도코드", "흡연상태", "음주여부",
+                 "당뇨", "고혈압", "간기능"]
 
 for col in category_cols:
     df_synth[col] = df_synth[col].astype("category")

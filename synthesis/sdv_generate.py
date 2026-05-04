@@ -28,7 +28,8 @@ print(f"컬럼 목록: {df_synth.columns.tolist()}\n")
 metadata = SingleTableMetadata()
 metadata.detect_from_dataframe(df_synth)
 
-category_cols = ['성별코드', '연령대코드(5세단위)', '시도코드', '흡연상태', '음주여부']
+category_cols = ['성별코드', '연령대코드(5세단위)', '시도코드', '흡연상태', '음주여부',
+                 '당뇨', '고혈압', '간기능']
 for col in category_cols:
     metadata.update_column(col, sdtype='categorical')
 
